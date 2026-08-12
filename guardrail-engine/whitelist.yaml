@@ -1,0 +1,38 @@
+# لیست سفید اکشن‌های مجاز برای Agent
+# هر اکشن باید اینجا تعریف شده باشد وگرنه guardrail آن را رد می‌کند.
+#
+# risk_level:
+#   low      -> اجرای خودکار مجاز است (در حالت act)
+#   medium   -> اجرای خودکار مجاز است ولی لاگ کامل و اطلاع‌رسانی فوری لازم است
+#   critical -> اجرای خودکار ممنوع است؛ همیشه نیاز به تأیید انسانی (human-in-the-loop) دارد
+
+actions:
+  restart_service:
+    description: "ری‌استارت یک سرویس مشخص روی یک هاست"
+    risk_level: low
+    requires_approval: false
+    params: [host, service_name]
+
+  block_ip:
+    description: "بلاک کردن یک آدرس IP مشکوک در فایروال"
+    risk_level: medium
+    requires_approval: false
+    params: [ip_address, duration_minutes]
+
+  change_vlan_port:
+    description: "تغییر VLAN یک پورت مشخص روی یک سوییچ"
+    risk_level: critical
+    requires_approval: true
+    params: [switch_host, port, new_vlan]
+
+  change_route_metric:
+    description: "تغییر متریک یک مسیر routing"
+    risk_level: critical
+    requires_approval: true
+    params: [router_host, route, new_metric]
+
+  restart_interface:
+    description: "شات‌داون و آپ کردن مجدد یک اینترفیس"
+    risk_level: medium
+    requires_approval: true
+    params: [device_host, interface]

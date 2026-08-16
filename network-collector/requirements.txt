@@ -1,3 +1,4 @@
 influxdb-client==1.44.0
-pysnmp==6.2.5
+easysnmp==0.2.6
 netmiko==4.4.0
+pyyaml==6.0.1

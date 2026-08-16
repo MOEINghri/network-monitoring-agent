@@ -11,9 +11,9 @@
 
 ## دمو
 
-| داشبورد Grafana | هشدار در تلگرام |
-|---|---|
-| ![dashboard](docs/screenshots/grafana-dashboard.png) | ![telegram](docs/screenshots/telegram-alert.png) |
+| داشبورد Grafana | هشدار در تلگرام | لاگ زنجیره کامل |
+|---|---|---|
+| ![dashboard](docs/screenshots/grafana-dashboard.png) | ![telegram](docs/screenshots/telegram-alert.png) | ![logs](docs/screenshots/agent-logs.png) |
 
 ## معماری
 
@@ -87,7 +87,23 @@ docker compose up --build
 
 ## چه چیزی الان مانیتور می‌شود؟
 
-فعلاً پروژه فقط **reachability پایه** (ping-based) را برای فهرستی از IP‌های تعریف‌شده در `SNMP_TARGETS` (در `.env`) اندازه می‌گیرد: قابل‌دسترس بودن، تأخیر (latency)، و درصد از دست‌رفتن بسته (packet loss). پشتیبانی SNMP واقعی (CPU، ترافیک پورت، وضعیت اینترفیس) و اتصال واقعی به تجهیزات (از طریق netmiko/napalm) در `guardrail-engine` هنوز پیاده‌سازی نشده - نقشه راه پایین را ببینید.
+دو لایه‌ی مجزا از مانیتورینگ داریم:
+
+**۱. Reachability پایه (ping-based)** — برای هر IP در `SNMP_TARGETS` (در `.env`)، سه چیز اندازه‌گیری می‌شود: قابل‌دسترس بودن، تأخیر (latency)، و درصد از دست‌رفتن بسته (packet loss). این چک نیازی به هیچ تنظیماتی روی خود دستگاه ندارد.
+
+**۲. متریک‌های عمیق SNMP** — برای دستگاه‌هایی که در [`network-collector/devices.yaml`](network-collector/devices.yaml) تعریف شده‌اند: CPU load، استفاده از حافظه (RAM)، فضای دیسک، و ترافیک اینترفیس (bits/sec ورودی و خروجی). این معماری چند نوع دستگاه را پشتیبانی می‌کند:
+
+| نوع دستگاه | CPU | Memory/Disk | وضعیت |
+|---|---|---|---|
+| MikroTik (RouterOS) | ✅ (OID اختصاصی) | ❌ (HOST-RESOURCES-MIB ندارد) | فعال و تست‌شده |
+| Linux (net-snmp) | ✅ (HOST-RESOURCES-MIB) | ✅ | فعال و تست‌شده |
+| Windows (SNMP Service) | ✅ (HOST-RESOURCES-MIB) | ✅ | پیاده‌سازی شده، تست نشده |
+| Cisco IOS/IOS-XE | ✅ (OID اختصاصی، best-effort) | ❌ | پیاده‌سازی شده، تست نشده |
+| Generic (هر دستگاه دیگر با HOST-RESOURCES-MIB) | ✅ | ✅ | فعال |
+
+**برای افزودن یک دستگاه جدید به مانیتورینگ عمیق**، کافیست یک بلوک جدید به `network-collector/devices.yaml` اضافه کنی - نیازی به تغییر کد پایتون نیست. راهنمای کامل فیلدها و مثال‌های آماده (شامل الگوی غیرفعال برای Windows و Cisco) داخل همان فایل کامنت‌گذاری شده است.
+
+اگر می‌خواهی نوع دستگاه کاملاً جدیدی (مثلاً Juniper یا Fortinet) اضافه کنی که در جدول بالا نیست، فقط باید در `network-collector/device_profiles.py` یک پروفایل جدید با OID های مربوطه تعریف کنی - `snmp_client.py` و `collector.py` را دست نزن.
 
 ## حالت‌های اجرا
 
@@ -103,7 +119,7 @@ docker compose up --build
 - [x] لایه Guardrail با whitelist و سطح‌بندی ریسک
 - [x] اطلاع‌رسانی هوشمند به تلگرام (Agent تصمیم می‌گیرد چه‌وقت هشدار بفرستد)
 - [x] داشبورد Grafana با پنل‌های جدا برای latency / packet loss / reachability
-- [ ] پشتیبانی کامل SNMP برای دستگاه‌های واقعی (CPU، ترافیک پورت، وضعیت اینترفیس)
+- [x] پشتیبانی SNMP چند-دستگاهی (MikroTik، Linux، Windows، Cisco) با معماری قابل‌توسعه بر اساس devices.yaml
 - [ ] اتصال واقعی به تجهیزات با netmiko/napalm در Guardrail
 - [ ] محیط شبیه‌سازی‌شده آماده با GNS3/EVE-NG
 - [ ] تست‌های سناریوی خرابی (chaos scenarios)
